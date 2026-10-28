@@ -40,6 +40,8 @@ def align(
             u = alignment_cost[i][j-1][0] + indel_penalty
 
             cost = min(d, l, u)
+
+            # priority order is diagonal, left, up
             if cost == d:
                 alignment_cost[i][j] = (cost, "d")
             elif cost == l:
@@ -48,6 +50,8 @@ def align(
                 alignment_cost[i][j] = (cost, "u")
 
     final_cost = alignment_cost[cols-1][rows-1][0]
+
+    # align strings concurrently
     seq1_alignment = ""
     seq2_alignment = ""
     i = cols - 1
