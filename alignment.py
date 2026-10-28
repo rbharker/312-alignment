@@ -63,47 +63,52 @@ def find_final_cost(
     banded_width=-1)->list:
 
     # initialize base cases
-    for i in range(cols):
+    alignment_cost[0][0] = (0, None)
+    for i in range(1, cols):
         if banded_width == -1 or i <= banded_width:
-            alignment_cost[i][0] = (indel_penalty * i, None)
-    for j in range(rows):
+            alignment_cost[i][0] = (indel_penalty * i, "l")
+    for j in range(1, rows):
         if banded_width == -1 or j <= banded_width:
-            alignment_cost[0][j] = (indel_penalty * j, None)
+            alignment_cost[0][j] = (indel_penalty * j, "u")
 
 
     # traverse through the matrix until the final cost
     for i in range(1, cols):
         for j in range(1, rows):
 
+            # if you're in the case outside of banded width, skip
             if banded_width != -1 and abs(i-j) > banded_width:
                 continue
 
-            usable_j = 0
-            d = 0
-            l = 0
-            u = 0
+            # variable for adjusting for blank spots
             if banded_width != -1 and i > banded_width:
                 usable_j = j-(i-banded_width)
             else:
                 usable_j = j
 
+            # if you've adjusted for blank spots, diagonal coordinates are different
             if (usable_j != j):
                 d = alignment_cost[i - 1][usable_j][0] + match_award if seq1[j - 1] == seq2[i - 1] \
                     else alignment_cost[i - 1][usable_j][0] + sub_penalty
+            # otherwise use regular diagonal coordinates
             else:
                 d = alignment_cost[i - 1][usable_j - 1][0] + match_award if seq1[j - 1] == seq2[i - 1] \
                     else alignment_cost[i - 1][usable_j - 1][0] + sub_penalty
 
+            # if you're not going to look in blank spots
             if banded_width == -1 or abs((i-1)-j) <= banded_width:
                 if (usable_j != j):
                     l = alignment_cost[i - 1][usable_j + 1][0] + indel_penalty
                 else:
                     l = alignment_cost[i - 1][usable_j][0] + indel_penalty
+            # otherwise don't use left value as minimum
             else:
                 l = float('inf')
 
+            # if you're not going to look in blank spots
             if (usable_j != 0):
                 u = alignment_cost[i][usable_j - 1][0] + indel_penalty
+            # otherwise don't use above value as minimum
             else:
                 u = float('inf')
 
@@ -112,7 +117,7 @@ def find_final_cost(
                 alignment_cost[i][usable_j] = (cost, "d")
             elif cost == l:
                 alignment_cost[i][usable_j] = (cost, "l")
-            else:
+            elif cost == u:
                 alignment_cost[i][usable_j] = (cost, "u")
 
     return alignment_cost
@@ -128,73 +133,71 @@ def align_strings(
 
     seq1_alignment = ""
     seq2_alignment = ""
-    i = cols - 1
-    j = rows - 1
-    index1 = 0
-    index2 = 0
+    i = -1
+    j = -1
+    index1 = -1
+    index2 = -1
 
-    if banded_width != -1 and i > banded_width:
-        usable_j = j - (i - banded_width)
-    else:
-        usable_j = j
-
-    while ((banded_width == -1 or abs(i-j) < banded_width)
-           and (alignment_cost[i][usable_j][1] is not None or i != 0 or usable_j != 0)):
-        current = alignment_cost[i][usable_j]
+    change = True
+    while change == True:
+        change= False
+        current = alignment_cost[i][j]
         if current[1] == "d":
+            if abs(index1) < rows:
+                seq1_alignment = seq1[index1] + seq1_alignment
+            if abs(index2) < cols:
+                seq2_alignment = seq2[index2] + seq2_alignment
+            if banded_width != -1:
+                if abs(i) <= banded_width:
+                    j = j - 1
+                else:
+                    j = j
+            else:
+                j = j - 1
+            i = i - 1
             index1 -= 1
             index2 -= 1
-            seq1_alignment = seq1[index1] + seq1_alignment
-            seq2_alignment = seq2[index2] + seq2_alignment
-            i = i - 1
-            j = j - 1
-            if banded_width != -1 and i > banded_width:
-                usable_j = j - (i - banded_width)
-            else:
-                usable_j = j
+            change = True
         elif current[1] == "l":
-            index2 -= 1
             seq1_alignment = gap + seq1_alignment
-            seq2_alignment = seq2[index2] + seq2_alignment
-            i = i - 1
-            j = j
-            if banded_width != -1 and i > banded_width:
-                usable_j = j - (i - banded_width)
+            if abs(index2) < cols:
+                seq2_alignment = seq2[index2] + seq2_alignment
+            if banded_width != -1:
+                if abs(i) <= banded_width:
+                    j = j
+                else:
+                    j = j + 1
             else:
-                usable_j = j
+                j = j
+            i = i - 1
+            index2 -= 1
+            change = True
         elif current[1] == "u":
-            index1 -= 1
             seq2_alignment = gap + seq2_alignment
-            seq1_alignment = seq1[index1] + seq1_alignment
+            if abs(index1) < rows:
+                seq1_alignment = seq1[index1] + seq1_alignment
             i = i
             j = j - 1
-            if banded_width != -1 and i > banded_width:
-                usable_j = j - (i - banded_width)
-            else:
-                usable_j = j
+            index1 -= 1
+            change = True
         else:
-            if usable_j > 0:
-                while usable_j > 0:
-                    index1 -= 1
+            if alignment_cost[i][j] != alignment_cost[i][0]:
+                while alignment_cost[i][j] != alignment_cost[i][0]:
                     seq2_alignment = gap + seq2_alignment
-                    seq1_alignment = seq1[index1] + seq1_alignment
+                    if abs(index1) < rows:
+                        seq1_alignment = seq1[index1] + seq1_alignment
                     i = i
                     j = j - 1
-                    if banded_width != -1 and i > banded_width:
-                        usable_j = j - (i - banded_width)
-                    else:
-                        usable_j = j
-            if i > 0:
-                while i > 0:
-                    index2 -= 1
+                    index1 -= 1
+            if abs(i) < cols:
+                while abs(i) < cols:
                     seq1_alignment = gap + seq1_alignment
-                    seq2_alignment = seq2[index2] + seq2_alignment
+                    if abs(index2) < cols:
+                        seq2_alignment = seq2[index2] + seq2_alignment
                     i = i - 1
                     j = j
-                    if banded_width != -1 and i > banded_width:
-                        usable_j = j - (i - banded_width)
-                    else:
-                        usable_j = j
+                    index2 -= 1
+            break
     return seq1_alignment, seq2_alignment
 
 def local_align(
