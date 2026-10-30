@@ -238,14 +238,20 @@ def align(
 ### Comparison of Theoretical and Empirical Results - Unrestricted Alignment
 
 - Theoretical order of growth: O(nm)
-- Empirical order of growth (if different from theoretical): O(n)
+- Empirical order of growth (if different from theoretical): O(nm)
 
 ![](/empirical_analysis/unbanded_align.svg)
 
-*The empirical data shows that this algorithm runs faster on average than I expected it to. I predict
-that is because many of the calculations needed for each cell are trivial, so it ends up being faster
-O(nm).*
+*My empirical oder of growth matches my theoretical.*
 
 ## Project Review
 
-*Fill me in*
+*I discussed this project with Logan Richardson. We had similar implementations for the baseline
+requirement in that we both used matrices to keep track of values and scores, but Logan actually used
+two matrices -- one for scores and one for keeping track of direction. Because of this, his empirical
+data showed that his implementation was O(nm), which is still the same as mine, but his might
+be slightly more efficient when analyzed in depth.*
+
+*I also discussed with Gracee Putnam. She also used a 2D array and her time complexity was O(nm). We
+discussed our implementations and how we programmed the algorithm, and we both had similar ideas and 
+implementations.*
